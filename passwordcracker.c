@@ -21,6 +21,8 @@ int main(int argc, char **argv) {
 	int passwordLength = -1;
 	std::string hash = "";
 	std::string yes = "Y";
+	bool passwordFound = false;
+
 	//Get settings in rank 0 then distribute settings to other ranks
 	if(rank == 0){
 		//Settings 
@@ -52,24 +54,38 @@ int main(int argc, char **argv) {
 	//Calculate password space
 
 
+	//Main Loop
+	while(!passwordFound){
 
-	//Get input hash
+		int myflag;
 
-	//Generate password space a-z A-Z 0-9
-
-	//Loop till password found
-
-	//Check current generated string
-
-	//if password == string break
-
-	//iterate to next string
-
-	//if no next string look for work from other processes
+		
 
 
 
+		std::string newHash = "";
+		//Do hashing
 
+		//Check current generated string
+
+
+		if(hash.compare(newHash) == 0){
+			passwordFound = true;
+
+			//Send the I found it signal to other processes
+
+		}
+
+		//iterate to next string
+
+		//Check if password has been found by other processes
+		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MCW, &myflag, &mystatus);
+		//If password found don't loop anymore
+		if(myflag){
+			passwordFound = true;
+		}
+
+	}	
 
 
 
