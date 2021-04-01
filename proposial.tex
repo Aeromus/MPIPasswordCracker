@@ -1,0 +1,76 @@
+%Overarching document template
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Package Inclusion                                        
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{amsmath} % Required for many math properties. AMS stands for American Mathematical Society.
+\usepackage{amssymb} %Required for using many math symbols.
+\usepackage{geometry} % Required for adjusting page dimensions.
+\usepackage[utf8]{inputenc} % Required for inputting international characters.
+\usepackage[none]{hyphenat} % Removes automatic hyphenation (a personal pet peeve of Sam).
+\usepackage{hyperref} % Required to include URLs
+\usepackage{xcolor} % Required to turn URLs the correct colors.
+\usepackage{listings} % Required to display code.
+\usepackage{bm} % Required to make vectors bold.
+\usepackage{titlesec}
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Page settings                                              
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Set up page dimensions.
+\geometry{
+    paper=letterpaper, % 8.5 x 11 paper.
+	top=1in, % Top margin.
+	bottom=1in, % Bottom margin.
+	left=1in, % Left margin.
+	right=1in, % Right margin.
+}
+ % Set up code display settings
+\lstset{
+frame = single, % Box the code
+numbers=left % Show line numbers
+}
+% Set up line and paragraph spacing
+\setlength{\parindent}{0em} % Sets paragraph indentation
+\setlength{\parskip}{1em} % Sets paragraph spacing
+\linespread{1.0} % Sets line spacing
+
+% Document attributes
+\title{CS 5500 Project Proposal}
+\author{Andrew Knoblach \& Carter McGee}
+\date{\today}
+
+% Section formatting
+\titleformat{\section}{\normalfont\Large\bfseries}{}{0em}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Begin the content which will be displayed in the output PDF
+% Only things in between \begin{document} and \end{document} actually show up on your paper!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+While looking at a list of problems that are good with parallel implementations we decided upon trying our hands at a brute force password cracker. The idea being that given a hashed password the program will run through all possible passwords in the password space until a match is found, then it will return the de-hashed password.
+
+\section{Description}
+
+Due to how quickly the password space could possibly expand we are limiting the program to only Uppercase, lowercase, and numbers. This gives each possible position in the password 62 possible entries (26 Uppercase A-Z + 26 lowercase a-z + 10 numbers 0-9). The program will start by being given a hashed password (Potentially Md5 hashed) then each rank will iterate over a password space of its size. Due to the fact that rank0 will only have 62 entries to try while later ranks will have more the plan is for once a rank has finished its password space to request a section of password space from another rank. The work then should then be distributed from ranks that still have work to a rank that is currently done. This continues until one of the ranks comes across a match , in which case all ranks terminate and the de-hashed password is returned.
+
+\section{Tests}
+
+The tests for this will be two fold. Firstly, can the program, given a hashed password successfully brute force its de-hashed counter part. Secondly, we would like to test how long it takes to brute force a password of n size. Given the fact that the given password space increases rather quickly we will probably not be testing passwords over 8 characters in length. Thus we will likely start with simple passwords like "abc", "qwe", etc. and then move to larger passwords.
+
+
+\section{Anticipated Results}
+
+We anticipate that as the passwords become longer in length the program will take longer and longer to crack them. As a result having more processors will be ideal for running this program. Additionally, because each space in the password has 62 possible combinations the password space increases at a rate of $62^n$ where n is the number of characters in the password.
+
+\section{Statement}
+I hereby give permission for the program to be distributed to the class for fun and/or interest.
+
+\end{document}
