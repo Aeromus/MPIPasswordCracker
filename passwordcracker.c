@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
-
+#include "md5.h"
 
 #define MCW MPI_COMM_WORLD
 
@@ -48,6 +48,9 @@ int main(int argc, char **argv) {
 
 		std::cout<< "The password hash is " << hash <<std::endl;
 		std::cout<< "The lenght of the password is " << passwordLength << std::endl;
+
+		//Example of how to do use the MD5 function. Its tested and gives correct results
+		std::cout << "md5 test: " << md5("test123") << std::endl;
 	}
 
 
