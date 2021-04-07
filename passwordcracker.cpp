@@ -8,94 +8,143 @@
 #include "md5.h"
 
 #define MCW MPI_COMM_WORLD
+#define TERMINATE 8
 
-std::vector<std::string> passwords;
+MPI_Status myStatus;
 
-void generate(char* arr, int i, std::string s, int len)
-{
+std::string hash;
+int startIndex;
+int endIndex;
+int passwordLength = 6;
+int size, rank, data;
+int myFlag;
+
+
+void generate(char* arr, int i, std::string s, int len) {
     // base case
-    if (i == 0) // when len has been reached
-    {
-        // print it out
-        //std::cout << s << "\n";
-		::passwords.push_back(s);
-		//std::cout<< passwords.size();
-        // cnt++;
+    if (i == 0){ // when len has been reached
+        // check if the password was found
+        if(hash.compare(md5(s)) == 0){
+            std::cout << "The password is: " << s << std::endl << std::endl;
+
+            // tell all the other processes to terminate
+            for(int i = 0; i < size; i++){
+                if(i != rank){
+                    MPI_Send(&data, 1, MPI_INT, i, TERMINATE, MCW);
+                }
+            }
+            MPI_Finalize();
+            exit(0);
+
+        } else {
+            // check if a process found the password
+            MPI_Iprobe(MPI_ANY_SOURCE, TERMINATE, MCW, &myFlag, &myStatus);
+            if(myFlag){
+                MPI_Finalize();
+                exit(0);
+            }
+        }
         return;
     }
-  
+
     // iterate through the array
     for (int j = 0; j < len; j++) {
-  
+
         // Create new string with next character
         // Call generate again until string has
         // reached its len
         std::string appended = s + arr[j];
         generate(arr, i - 1, appended, len);
     }
-  
+
     return;
 }
-  
+
 // function to generate all possible passwords
-void crack(char* arr, int len, int pwdSize)
-{
-	std::vector<std::string> passwords;
-    // call for all required lengths
-    for (int i = 1; i <= pwdSize; i++) {
-        generate(arr, i, "", len);
+void crack(char* arr, int len) {
+    for(int i = startIndex; i <= endIndex; i++){
+        std::string startString = "";
+        startString += static_cast<char>(arr[i]);
+        generate(arr, passwordLength - 1, startString, len);
     }
-
-	return;
-
 }
+
 
 int main(int argc, char **argv) {
 
-	int rank, size, data;
+	bool includeLower = false;
+	bool includeUpper = false;
+	bool includeNumbers = false;
 
 	//MPI INIT Stuff
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MCW, &size);
 	MPI_Comm_rank(MCW, &rank);
-	MPI_Status mystatus;
-	srand(rank);
-	int passwordLength = -1;
-	std::string hash = "";
-	std::string yes = "Y";
-	bool passwordFound = false;
     int hashLength = -1;
-	std::vector<std::string> passwords;
+    std::string yes = "Y";
+
 	//Get settings in rank 0 then distribute settings to other ranks
 	if(rank == 0){
+        std::cout << "md5 hash: " << md5("test") << std::endl;
 		//Settings 
 		// -Known password length
 		// -Provide password hash
 		// For now, assume the password has upper case, lower case, and numbers
+		bool havePassLen = false;
+		while(!havePassLen){
+            std::cout<< "\nHow long is the password? " ;
+            std::cin >> passwordLength;
 
-		std::string knownLength = "";
-		std::cout << "\nIs the length of the password known? (Y/n) ";
-		std::getline(std::cin, knownLength);
-		if(yes.compare(knownLength) == 0){
-			std::cout<< "\nHow long is the password?  " ;
-			std::cin >> passwordLength;
-
-			//flush buffer
-			std::string s;
-			std::getline(std::cin, s);
-
+            if(passwordLength < 1){
+                std::cout << "Please input a password length of at least length 1." << std::endl;
+            } else{
+                havePassLen = true;
+            }
 		}
 
-		std::cout << "\nWhat is the password hash? ";
+		bool validPWS = false;
+		while(!validPWS){
+            std::string lower = "";
+            std::cout << "Does the password contain lower case characters? (Y/n) ";
+            std::cin >> lower;
+            if(yes.compare(lower) == 0){
+                includeLower = true;
+            }
+
+            std::string upper = "";
+            std::cout << "Does the password contain upper case characters? (Y/n) ";
+            std::cin >> upper;
+            if(yes.compare(upper) == 0){
+                includeUpper = true;
+            }
+
+            std::string numbers = "";
+            std::cout << "Does the password contain numbers? (Y/n) ";
+            std::cin >> numbers;
+            if(yes.compare(numbers) == 0){
+                includeNumbers = true;
+            }
+
+            if(!includeLower && !includeUpper && !includeNumbers){
+                std::cout << "Please enter a valid password space." << std::endl;
+            } else {
+                validPWS = true;
+            }
+		}
+
+        //flush buffer
+        std::string s;
+        std::getline(std::cin, s);
+
+		std::cout << "What is the password hash? ";
 		std::getline(std::cin, hash);
-        hashLength = hash.size();
-
-		//std::cout<< "The password hash is " << hash <<std::endl;
-		//std::cout<< "The lenght of the password is " << passwordLength << std::endl;
-
-		//Example of how to do use the MD5 function. Its tested and gives correct results
-		std::cout << "md5 test: " << md5("test123") << std::endl;
+		hashLength = hash.size();
 	}
+
+	// make sure every process knows the password space
+    MPI_Bcast(&includeLower, 1, MPI_C_BOOL, 0, MCW);
+    MPI_Bcast(&includeUpper, 1, MPI_C_BOOL, 0, MCW);
+    MPI_Bcast(&includeNumbers, 1, MPI_C_BOOL, 0, MCW);
 
     // make sure every process has the length of the hash string
     MPI_Bcast(&hashLength, 1, MPI_INT, 0, MCW);
@@ -114,75 +163,34 @@ int main(int argc, char **argv) {
     // broadcast the password length
     MPI_Bcast(&passwordLength, 1, MPI_INT, 0, MCW);
 
-    // Check if the communication worked
-    std::cout << "rank " << rank << " has password length: " << passwordLength <<std::endl;
-    std::cout << "rank " << rank << " has password hash: " << hash <<std::endl;
-
-
     //Calculate password space
     std::vector<int> passwordSpace;
-    for(int i = 65; i < 91; i++){ passwordSpace.push_back(i);} // ascii values A-Z
-    for(int i = 97; i < 123; i++){ passwordSpace.push_back(i);} // ascii values a-z
-    for(int i = 48; i < 58; i++){ passwordSpace.push_back(i);} // ascii values 0-9
-    int start_index = (passwordSpace.size() / size) * rank;
-    int end_index = (rank == size -1) ? (passwordSpace.size()) : (start_index + (passwordSpace.size() / size));
+    if(includeLower){
+        for(int i = 97; i < 123; i++){ passwordSpace.push_back(i);} // ascii values a-z
+    }
+    if(includeUpper){
+        for(int i = 65; i < 91; i++){ passwordSpace.push_back(i);} // ascii values A-Z
+    }
+    if(includeNumbers){
+        for(int i = 48; i < 58; i++){ passwordSpace.push_back(i);} // ascii values 0-9
+    }
 
-    // Check if the password space was computed correctly
-    std::cout << "rank " << rank << " has password space: " << start_index << "-" << end_index << std::endl;
+    startIndex = (passwordSpace.size() / size) * rank;
+    if(rank == (size - 1)){
+        endIndex = passwordSpace.size() - 1;
+    } else {
+        endIndex = (startIndex + (passwordSpace.size() / size));
+    }
 
-	//,'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'
-	if(rank==0){
-		std::cout<<"Generating password space\n";
-		char space[] = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
-		crack(space, 26, 5);
-		std::cout<<"Printing password space\n";
-		for(int i = 0; i<::passwords.size(); i++){
-			std::cout << ::passwords[i] << std::endl;
-		}
-		std::cout<<"Done printing password space\n";
-	}
+    char pws[passwordSpace.size()];
+    for(int i = 0; i < passwordSpace.size(); i++){
+        pws[i] = static_cast<char>(passwordSpace[i]);
+    }
 
-	//Main Loop
-	while(!passwordFound){
+    // find the password
+    crack(pws, passwordSpace.size());
 
-		int myflag;
-
-		
-
-
-
-		std::string newHash = "";
-		//Do hashing
-
-		//Check current generated string
-
-
-		if(hash.compare(newHash) == 0){
-			passwordFound = true;
-
-			//Send the I found it signal to other processes
-
-		}
-
-		//iterate to next string
-
-		//Check if password has been found by other processes
-		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MCW, &myflag, &mystatus);
-		//If password found don't loop anymore
-		if(myflag){
-			passwordFound = true;
-		}
-
-	}	
-
-
-
-	//Once password found report string and hash
-
-
-	//Used to prevent stack smashing & Desync issues
-	MPI_Finalize();
-
+    MPI_Finalize();
 	return 0;
 }
 
