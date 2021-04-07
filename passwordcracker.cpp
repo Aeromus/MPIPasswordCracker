@@ -9,6 +9,46 @@
 
 #define MCW MPI_COMM_WORLD
 
+std::vector<std::string> passwords;
+
+void generate(char* arr, int i, std::string s, int len)
+{
+    // base case
+    if (i == 0) // when len has been reached
+    {
+        // print it out
+        //std::cout << s << "\n";
+		::passwords.push_back(s);
+		//std::cout<< passwords.size();
+        // cnt++;
+        return;
+    }
+  
+    // iterate through the array
+    for (int j = 0; j < len; j++) {
+  
+        // Create new string with next character
+        // Call generate again until string has
+        // reached its len
+        std::string appended = s + arr[j];
+        generate(arr, i - 1, appended, len);
+    }
+  
+    return;
+}
+  
+// function to generate all possible passwords
+void crack(char* arr, int len, int pwdSize)
+{
+	std::vector<std::string> passwords;
+    // call for all required lengths
+    for (int i = 1; i <= pwdSize; i++) {
+        generate(arr, i, "", len);
+    }
+
+	return;
+
+}
 
 int main(int argc, char **argv) {
 
@@ -25,7 +65,7 @@ int main(int argc, char **argv) {
 	std::string yes = "Y";
 	bool passwordFound = false;
     int hashLength = -1;
-
+	std::vector<std::string> passwords;
 	//Get settings in rank 0 then distribute settings to other ranks
 	if(rank == 0){
 		//Settings 
@@ -90,6 +130,17 @@ int main(int argc, char **argv) {
     // Check if the password space was computed correctly
     std::cout << "rank " << rank << " has password space: " << start_index << "-" << end_index << std::endl;
 
+	//,'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9'
+	if(rank==0){
+		std::cout<<"Generating password space\n";
+		char space[] = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
+		crack(space, 26, 5);
+		std::cout<<"Printing password space\n";
+		for(int i = 0; i<::passwords.size(); i++){
+			std::cout << ::passwords[i] << std::endl;
+		}
+		std::cout<<"Done printing password space\n";
+	}
 
 	//Main Loop
 	while(!passwordFound){
