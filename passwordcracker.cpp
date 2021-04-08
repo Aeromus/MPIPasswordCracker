@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 #include "md5.h"
+#include <chrono>
 
 #define MCW MPI_COMM_WORLD
 #define TERMINATE 8
@@ -18,15 +19,17 @@ int endIndex;
 int passwordLength = 6;
 int size, rank, data;
 int myFlag;
-
+auto start = std::chrono::high_resolution_clock::now();
 
 void generate(char* arr, int i, std::string s, int len) {
     // base case
     if (i == 0){ // when len has been reached
         // check if the password was found
         if(hash.compare(md5(s)) == 0){
+            auto stop = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<seconds>(stop -start);
             std::cout << "The password is: " << s << std::endl << std::endl;
-
+            std::cout << "It took " << duration << " seconds to find" << std::endl;
             // tell all the other processes to terminate
             for(int i = 0; i < size; i++){
                 if(i != rank){
@@ -62,9 +65,9 @@ void generate(char* arr, int i, std::string s, int len) {
 
 // function to generate all possible passwords
 void crack(char* arr, int len) {
-    std::string startString;
-    for(int i = startIndex; i < endIndex; i++){
-        startString = static_cast<char>(arr[i]);
+    for(int i = startIndex; i <= endIndex; i++){
+        std::string startString = "";
+        startString += static_cast<char>(arr[i]);
         generate(arr, passwordLength - 1, startString, len);
     }
 }
@@ -72,28 +75,26 @@ void crack(char* arr, int len) {
 
 int main(int argc, char **argv) {
 
-    bool includeLower = false;
-    bool includeUpper = false;
-    bool includeNumbers = false;
+	bool includeLower = false;
+	bool includeUpper = false;
+	bool includeNumbers = false;
 
-    //MPI INIT Stuff
-    MPI_Init(&argc, &argv);
-    MPI_Comm_size(MCW, &size);
-    MPI_Comm_rank(MCW, &rank);
-
+	//MPI INIT Stuff
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MCW, &size);
+	MPI_Comm_rank(MCW, &rank);
     int hashLength = -1;
     std::string yes = "Y";
-    srand((unsigned)time(0)+(rank*size));
 
-    //Get settings in rank 0 then distribute settings to other ranks
-    if(rank == 0){
-        std::cout << "md5 hash: " << md5("test") << std::endl;
-        //Settings 
-        // -Known password length
-        // -Provide password hash
-        // For now, assume the password has upper case, lower case, and numbers
-        bool havePassLen = false;
-        while(!havePassLen){
+	//Get settings in rank 0 then distribute settings to other ranks
+	if(rank == 0){
+        //std::cout << "md5 hash: " << md5("test") << std::endl;
+		//Settings 
+		// -Known password length
+		// -Provide password hash
+		// For now, assume the password has upper case, lower case, and numbers
+		bool havePassLen = false;
+		while(!havePassLen){
             std::cout<< "\nHow long is the password? " ;
             std::cin >> passwordLength;
 
@@ -102,10 +103,10 @@ int main(int argc, char **argv) {
             } else{
                 havePassLen = true;
             }
-        }
+		}
 
-        bool validPWS = false;
-        while(!validPWS){
+		bool validPWS = false;
+		while(!validPWS){
             std::string lower = "";
             std::cout << "Does the password contain lower case characters? (Y/n) ";
             std::cin >> lower;
@@ -132,18 +133,18 @@ int main(int argc, char **argv) {
             } else {
                 validPWS = true;
             }
-        }
+		}
 
         //flush buffer
         std::string s;
         std::getline(std::cin, s);
 
-        std::cout << "What is the password hash? ";
-        std::getline(std::cin, hash);
-        hashLength = hash.size();
-    }
+		std::cout << "What is the password hash? ";
+		std::getline(std::cin, hash);
+		hashLength = hash.size();
+	}
 
-    // make sure every process knows the password space
+	// make sure every process knows the password space
     MPI_Bcast(&includeLower, 1, MPI_C_BOOL, 0, MCW);
     MPI_Bcast(&includeUpper, 1, MPI_C_BOOL, 0, MCW);
     MPI_Bcast(&includeNumbers, 1, MPI_C_BOOL, 0, MCW);
@@ -179,7 +180,7 @@ int main(int argc, char **argv) {
 
     startIndex = (passwordSpace.size() / size) * rank;
     if(rank == (size - 1)){
-        endIndex = passwordSpace.size();
+        endIndex = passwordSpace.size() - 1;
     } else {
         endIndex = (startIndex + (passwordSpace.size() / size));
     }
@@ -190,9 +191,10 @@ int main(int argc, char **argv) {
     }
 
     // find the password
+    ::start = std::chrono::high_resolution_clock::now();
     crack(pws, passwordSpace.size());
 
     MPI_Finalize();
-    return 0;
+	return 0;
 }
 
