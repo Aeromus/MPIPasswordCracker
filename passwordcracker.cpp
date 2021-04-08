@@ -27,9 +27,11 @@ void generate(char* arr, int i, std::string s, int len) {
         // check if the password was found
         if(hash.compare(md5(s)) == 0){
             auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::seconds>(stop -start);
+            auto durationSeconds = std::chrono::duration_cast<std::chrono::seconds>(stop -start);
+            auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(stop-start);
             std::cout << "The password is: " << s << std::endl << std::endl;
-            std::cout << "It took " << duration.count() << " seconds to find" << std::endl;
+            std::cout << "It took " << durationSeconds.count() << " seconds to find" << std::endl;
+            std::cout << "It took " << durationMs.count() << " miliseconds to find" << std::endl;
             // tell all the other processes to terminate
             for(int i = 0; i < size; i++){
                 if(i != rank){
