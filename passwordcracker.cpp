@@ -43,7 +43,7 @@ void generate(char* arr, int i, std::string s, int len) {
             exit(0);
 
         } else {
-		if(passwordAttemts % 5000 == 0){
+		if(passwordAttemts % 50000 == 0){
 		    // check if a process found the password
 		    MPI_Iprobe(MPI_ANY_SOURCE, TERMINATE, MCW, &myFlag, &myStatus);
 		    if(myFlag){
