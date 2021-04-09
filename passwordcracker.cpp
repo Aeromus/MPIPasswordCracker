@@ -20,6 +20,7 @@ int passwordLength = 6;
 int size, rank, data;
 int myFlag;
 auto start = std::chrono::high_resolution_clock::now();
+int passwordAttemts = 0;
 
 void generate(char* arr, int i, std::string s, int len) {
     // base case
@@ -42,13 +43,16 @@ void generate(char* arr, int i, std::string s, int len) {
             exit(0);
 
         } else {
-            // check if a process found the password
-            MPI_Iprobe(MPI_ANY_SOURCE, TERMINATE, MCW, &myFlag, &myStatus);
-            if(myFlag){
-                MPI_Finalize();
-                exit(0);
-            }
+		if(passwordAttemts % 50000 == 0){
+		    // check if a process found the password
+		    MPI_Iprobe(MPI_ANY_SOURCE, TERMINATE, MCW, &myFlag, &myStatus);
+		    if(myFlag){
+			MPI_Finalize();
+			exit(0);
+		    }
+		}
         }
+	passwordAttemts++;
         return;
     }
 
