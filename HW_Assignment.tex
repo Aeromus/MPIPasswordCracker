@@ -1,0 +1,26 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{CS5500 Project: Password Cracker}
+\author{Andrew Knoblach, Carter McGee}
+\date{April 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{} You will receive:
+
+\begin{itemize}
+	\item The length of the password
+	\item If the password space contains lowercase letters
+	\item If the password space contains uppercase letters
+	\item If the password space contains numbers
+	\item The hash to be broken
+\end{itemize}
+
+Write an MPI program to find the plaintext password corresponding to the given hash. You will divide the password space evenly among the processes and the program and each process will check every password in its password space until a solution is found. The program will terminate when the plaintext password is found. The MD5 hashing algorithm is provided for you.
+
+\section{} Write up a concise report in LaTeX that describes your implementation and approach. Include in this report timing studies for your program, controlling for password length, size of the character space, and the number of processes.
+
+\end{document}
